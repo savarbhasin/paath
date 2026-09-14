@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nerdy — Light Gamification Preview</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --brand:#2d6a4f; --brand-hover:#24563f; --tint:#e7f2e9;
+    --hair:#dfe5de; --ink:#0b1015; --muted:rgba(11,16,21,.6); --dim:#888e94;
+    --paper:#fafafa; --danger:#a53f34;
+  }
+  *{border-radius:0!important;box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--ink);font-family:"DM Sans",sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:"DM Mono",monospace}
+  header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--hair)}
+  .wrap{max-width:1232px;margin:0 auto;padding:0 24px}
+  .nav{display:flex;align-items:center;gap:16px;height:56px}
+  .logo{width:22px;height:22px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-family:"Space Grotesk"}
+  .wordmark{font-family:"Space Grotesk";font-weight:600;letter-spacing:-.02em}
+  .pill{margin-left:auto;font-family:"DM Mono";font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);border:1px solid var(--brand);padding:6px 10px;background:var(--tint)}
+  .hero{border-bottom:1px solid var(--hair);padding:40px 0 28px}
+  .eyebrow{font-family:"DM Mono";font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--brand)}
+  h1{font-family:"Space Grotesk";font-weight:500;letter-spacing:-.04em;font-size:44px;line-height:1.02;margin:12px 0 0}
+  .sub{color:var(--muted);font-size:15px;line-height:1.6;max-width:640px}
+  .grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);gap:0;border-left:1px solid var(--hair);border-right:1px solid var(--hair)}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}.side{border-left:none!important;border-top:1px solid var(--hair)}}
+  .main{padding:28px}
+  .side{border-left:1px solid var(--hair);padding:28px;background:var(--paper)}
+  .steps{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px;padding:0;list-style:none}
+  .steps li{font-family:"DM Mono";font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--hair);padding:6px 10px;color:var(--dim)}
+  .steps li.active{background:var(--tint);border-color:var(--brand);color:var(--brand)}
+  .steps li.done{background:var(--brand);border-color:var(--brand);color:#fff}
+  .card{border:1px solid var(--hair);background:#fff;padding:20px;margin-bottom:12px;position:relative;transition:transform .15s cubic-bezier(.22,1,.36,1)}
+  .card:active{transform:scale(.985)}
+  .q{font-family:"Space Grotesk";font-size:22px;letter-spacing:-.02em;margin:6px 0}
+  .tag{font-family:"DM Mono";font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  .back{border-top:1px dashed var(--hair);margin-top:12px;padding-top:12px;color:var(--muted);font-size:14px;line-height:1.6;display:none}
+  .back.show{display:block;animation:pop .25s cubic-bezier(.22,1,.36,1)}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  button{font-family:"DM Sans";cursor:pointer}
+  .btn{height:44px;display:inline-flex;align-items:stretch;overflow:hidden;border:1px solid var(--brand);background:var(--brand);color:#fff;font-size:14.5px;font-weight:500}
+  .btn span:first-child{display:flex;align-items:center;padding:0 20px}
+  .btn span:last-child{display:flex;align-items:center;justify-content:center;width:44px;border-left:1px solid rgba(255,255,255,.25)}
+  .btn:hover{background:var(--brand-hover)}
+  .btn:active{transform:scale(.985)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .ghost{background:#fff;color:var(--ink);border:1px solid var(--hair);height:36px;padding:0 14px;font-size:13px;font-weight:500}
+  .ghost:hover{border-color:var(--ink)}
+  .rate{height:32px;padding:0 12px;font-size:12.5px;font-weight:500;border:1px solid var(--hair);background:#fff;color:var(--muted)}
+  .rate:hover{border-color:var(--brand);color:var(--brand)}
+  .rate.picked{background:var(--brand);border-color:var(--brand);color:#fff}
+  .rate:disabled{opacity:.55;cursor:not-allowed}
+  .hud{border:1px solid var(--hair);background:#fff;margin-bottom:12px}
+  .hud-head{padding:12px 16px;border-bottom:1px solid var(--hair);display:flex;align-items:center;justify-content:space-between}
+  .xpnum{font-family:"Space Grotesk";font-size:38px;letter-spacing:-.03em}
+  .bar{height:8px;background:var(--tint);border:1px solid var(--hair);position:relative;overflow:hidden}
+  .bar > div{height:100%;background:var(--brand);width:0%;transition:width .5s cubic-bezier(.22,1,.36,1)}
+  .combo{display:inline-block;font-family:"DM Mono";font-size:11px;letter-spacing:.14em;padding:5px 9px;border:1px solid var(--brand);color:var(--brand);background:var(--tint)}
+  .combo.hot{background:var(--brand);color:#fff;animation:shake .3s}
+  @keyframes shake{0%,100%{transform:none}25%{transform:rotate(-2deg) scale(1.05)}50%{transform:rotate(2deg) scale(1.08)}}
+  .log{font-family:"DM Mono";font-size:11.5px;line-height:1.7;color:var(--muted);max-height:220px;overflow:auto}
+  .log b{color:var(--brand)}
+  .opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--hair);padding:10px 12px;margin-top:8px;cursor:pointer;font-size:14px}
+  .opt:hover{border-color:var(--brand)}
+  .opt.sel{border-color:var(--brand);background:var(--tint)}
+  .opt.right{border-color:var(--brand);background:var(--tint)}
+  .opt.wrong{border-color:var(--danger);background:#fff4f3}
+  .note{font-size:12.5px;color:var(--muted);line-height:1.6}
+  .code{font-family:"DM Mono";font-size:11.5px;background:#0b1015;color:#d7ffe0;padding:12px 14px;line-height:1.7;overflow:auto}
+  canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:99}
+  .float{position:fixed;font-family:"Space Grotesk";font-weight:700;color:var(--brand);pointer-events:none;z-index:100;animation:rise 900ms cubic-bezier(.22,1,.36,1) forwards}
+  @keyframes rise{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-56px)}}
+  footer{border-top:1px solid var(--hair);padding:20px 0 60px;color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<header><div class="wrap nav">
+  <div class="logo">N</div><div class="wordmark">nerdy-hack · gamify preview</div>
+  <div class="pill">LIGHT · NO DB · PURE UI</div>
+</div></header>
+
+<div class="wrap hero">
+  <div class="eyebrow">StudyMode + ReviewQueue · what "light gamification" feels like</div>
+  <h1>Same session.<br/>Now it fights back.</h1>
+  <p class="sub">This is a static mock of your real <span class="mono">components/study-mode.tsx</span> state (<span class="mono">ratedCards + practiceScore</span>). Rate cards, answer practice — XP, combo and progress are <b>derived in render only</b>. No migration, no API change. Try it:</p>
+</div>
+
+<div class="wrap"><div class="grid">
+  <div class="main">
+    <ol class="steps" id="steps">
+      <li data-s="recap" class="done">Recap ✓</li>
+      <li data-s="flash" class="active">Flashcards</li>
+      <li data-s="prac">Practice</li>
+      <li data-s="res">Result</li>
+    </ol>
+
+    <!-- FLASHCARDS -->
+    <div id="pane-flash">
+      <div class="tag">Flashcards · 4 cards · rate to earn</div>
+      <div id="cards"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="toPractice" disabled><span>Continue to practice</span><span>→</span></button>
+        <span class="note" id="rateHint">Rate every card to continue.</span>
+      </div>
+    </div>
+
+    <!-- PRACTICE -->
+    <div id="pane-prac" style="display:none">
+      <div class="tag">Practice · 2 questions · +25 XP each</div>
+      <div class="card" data-q="q1">
+        <div class="tag">Q1 · single choice · fractions</div>
+        <div class="q">Which is bigger: 3/4 or 2/3?</div>
+        <div class="opt" data-opt="a">2/3</div>
+        <div class="opt" data-opt="b">3/4</div>
+        <div class="opt" data-opt="c">They are equal</div>
+        <div class="back" id="exp-q1">3/4 = 9/12, 2/3 = 8/12. So 3/4 wins. Wrong answers here resurface in your ReviewQueue as “wrong-question”.</div>
+      </div>
+      <div class="card" data-q="q2">
+        <div class="tag">Q2 · single choice · multiplication</div>
+        <div class="q">7 × 8 = ?</div>
+        <div class="opt" data-opt="a">54</div>
+        <div class="opt" data-opt="b">56</div>
+        <div class="opt" data-opt="c">63</div>
+        <div class="back" id="exp-q2">7 × 8 = 56. In Nerdy this submit goes through your real <span class="mono">/api/assessments/[id]/submit</span> + <span class="mono">scoreAssessment()</span>.</div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="submitPrac" disabled><span>Submit practice</span><span>→</span></button>
+        <button class="ghost" id="backToFlash">← back</button>
+      </div>
+    </div>
+
+    <!-- RESULT -->
+    <div id="pane-res" style="display:none">
+      <div class="card" style="border-color:var(--brand);background:var(--tint)">
+        <div class="tag">Result · session wrap-up</div>
+        <div class="q" id="resTitle">Session complete!</div>
+        <p class="note" id="resBody"></p>
+        <div class="row" style="margin-top:14px">
+          <button class="btn" onclick="location.reload()"><span>Play again</span><span>↻</span></button>
+        </div>
+      </div>
+      <div class="code" id="devmap">derived state — no DB write
+ratedCards = { ... } → XP += {again:5, hard:10, good:15, easy:20}
+combo = consecutive good/easy → bonus +2 × combo (cap ×3)
+practiceScore.score → +25 per correct
+progress = (rated + answered) / total</div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="hud">
+      <div class="hud-head"><span class="eyebrow">Live XP</span><span class="combo" id="combo">combo ×1</span></div>
+      <div style="padding:16px">
+        <div class="xpnum"><span id="xp">0</span> <span style="font-size:14px;color:var(--dim)">XP</span></div>
+        <div class="bar" style="margin:12px 0 8px"><div id="barfill"></div></div>
+        <div class="note"><span id="prog">0 of 6</span> steps · best combo <span id="best">×1</span></div>
+      </div>
+    </div>
+    <div class="hud">
+      <div class="hud-head"><span class="eyebrow">Feed</span><span class="tag" id="streak">session log</span></div>
+      <div style="padding:12px 16px"><div class="log" id="log">→ session started. recap done.<br/></div></div>
+    </div>
+    <p class="note">XP values are deliberately forgiving: <b>again = +5</b> (never punish a retry — K-5 rule). Combo only grows on good/easy, resets on again. Everything here maps 1:1 to things you already render.</p>
+  </div>
+</div></div>
+
+<div class="wrap"><footer>Open this file directly: <span class="mono">gamify-preview.html</span> · Next: pick boss-fight skin vs. this XP skin. Both reuse the same derived state.</footer></div>
+
+<script>
+const XP = {again:5, hard:10, good:20-10, easy:20}; XP.hard=10; XP.good=15;
+const CARDS = [
+  {id:'c1', topic:'addition', front:'7 + 5 = ?', back:'12. 7 + 3 = 10, plus 2 more = 12.'},
+  {id:'c2', topic:'fractions', front:'What does 1/2 mean?', back:'One part out of two equal parts. Two halves make a whole.'},
+  {id:'c3', topic:'multiplication', front:'4 × 6 = ?', back:'24. Think 4 × 5 = 20, plus one more 4.'},
+  {id:'c4', topic:'word-problem', front:'You have 3 apples, get 2 more. How many?', back:'5. 3 + 2 = 5.'},
+];
+let xp=0, combo=1, best=1, rated={}, revealed=null, answers={}, graded=false;
+const $ = s => document.querySelector(s);
+const logEl = $('#log');
+
+function log(msg){ logEl.innerHTML += '→ ' + msg + '<br/>'; logEl.scrollTop = 1e6; }
+function float(text, x, y){
+  const el=document.createElement('div'); el.className='float'; el.textContent=text;
+  el.style.left=x+'px'; el.style.top=y+'px'; el.style.fontSize='20px';
+  document.body.appendChild(el); setTimeout(()=>el.remove(),950);
+}
+function addXP(n, e, label){
+  xp += n;
+  $('#xp').textContent = xp;
+  if(e) float('+'+n+' XP', e.clientX||innerWidth/2, e.clientY||200);
+  if(label) log(label + ' <b>+'+n+' XP</b>');
+  update();
+}
+function update(){
+  const ratedN = Object.keys(rated).length;
+  const ansN = Object.keys(answers).length;
+  const total = CARDS.length + 2;
+  $('#prog').textContent = (ratedN+ansN)+' of '+total;
+  $('#barfill').style.width = Math.round((ratedN+ansN)/total*100)+'%';
+  const c = $('#combo'); c.textContent = 'combo ×'+combo;
+  c.classList.toggle('hot', combo>=2);
+  $('#best').textContent = '×'+best;
+  const all = ratedN===CARDS.length;
+  $('#toPractice').disabled = !all;
+  $('#rateHint').textContent = all ? 'All rated — go!' : 'Rate every card to continue.';
+  const steps = document.querySelectorAll('#steps li');
+  steps.forEach(li=>li.className='');
+  const doneFlash = all, donePrac = graded;
+  document.querySelector('[data-s=recap]').className='done';
+  document.querySelector('[data-s=flash]').className = doneFlash?'done':'active';
+  document.querySelector('[data-s=prac]').className = donePrac?'done':(doneFlash?'active':'');
+  document.querySelector('[data-s=res]').className = donePrac?'active':'';
+}
+
+// render cards
+const wrap = $('#cards');
+CARDS.forEach(c=>{
+  const d=document.createElement('div'); d.className='card'; d.id='card-'+c.id;
+  d.innerHTML = `<div class="row"><span class="tag">${c.topic}</span><span class="tag" data-badge style="display:none;color:var(--brand)"></span><button class="ghost" style="margin-left:auto;height:30px" data-reveal>Reveal</button></div>
+  <div class="q">${c.front}</div><div class="back">${c.back}</div>
+  <div class="row" style="margin-top:12px" data-rates>
+    ${['again','hard','good','easy'].map(r=>`<button class="rate" data-rate="${r}">${r[0].toUpperCase()+r.slice(1)}</button>`).join('')}
+  </div>`;
+  wrap.appendChild(d);
+  d.querySelector('[data-reveal]').onclick = (e)=>{
+    const b=d.querySelector('.back'); const open=b.classList.toggle('show');
+    e.target.textContent = open?'Hide':'Reveal';
+  };
+  d.querySelectorAll('[data-rate]').forEach(btn=>{
+    btn.onclick=(e)=>{
+      if(rated[c.id]) return;
+      const r=btn.dataset.rate;
+      rated[c.id]=r;
+      d.querySelectorAll('[data-rate]').forEach(x=>{x.disabled=true; if(x===btn)x.classList.add('picked')});
+      const badge=d.querySelector('[data-badge]'); badge.style.display='inline'; badge.textContent='rated '+r;
+      let gain=XP[r], note=`card <b>${c.id}</b> → ${r}`;
+      if(r==='good'||r==='easy'){ gain += Math.min(combo,3)*2; combo++; best=Math.max(best,combo); note+=` · combo ×${combo-1}`; }
+      else if(r==='again'){ combo=1; note+=' · combo reset (no punishment, still +XP)'; }
+      addXP(gain,e,note);
+    };
+  });
+});
+
+// practice select
+document.querySelectorAll('[data-q]').forEach(card=>{
+  const q=card.dataset.q;
+  card.querySelectorAll('.opt').forEach(o=>{
+    o.onclick=()=>{
+      if(graded) return;
+      card.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));
+      o.classList.add('sel'); answers[q]=o.dataset.opt;
+      $('#submitPrac').disabled = !(answers.q1 && answers.q2);
+      update();
+    };
+  });
+});
+$('#toPractice').onclick=()=>{ $('#pane-flash').style.display='none'; $('#pane-prac').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); log('entered <b>practice</b> step'); update(); };
+$('#backToFlash').onclick=()=>{ $('#pane-prac').style.display='none'; $('#pane-flash').style.display='block'; };
+
+const CORRECT={q1:'b',q2:'b'};
+$('#submitPrac').onclick=(e)=>{
+  graded=true;
+  let correct=0;
+  ['q1','q2'].forEach(q=>{
+    const card=document.querySelector(`[data-q=${q}]`);
+    const pick=answers[q];
+    card.querySelectorAll('.opt').forEach(o=>{
+      if(o.dataset.opt===CORRECT[q]) o.classList.add('right');
+      else if(o.dataset.opt===pick) o.classList.add('wrong');
+    });
+    card.querySelector('.back').classList.add('show');
+    if(pick===CORRECT[q]){correct++; addXP(25,e,`practice <b>${q}</b> correct`);}
+    else log(`practice <b>${q}</b> missed → queued for review (no XP lost)`);
+  });
+  fire();
+  setTimeout(()=>{
+    $('#pane-prac').style.display='none'; $('#pane-res').style.display='block';
+    document.querySelectorAll('#steps li').forEach(li=>li.className='done');
+    $('#resTitle').textContent = correct===2 ? 'Flawless! +streak vibes' : correct===1 ? 'Nice — 1 to revenge!' : 'Good reps — revenge round queued';
+    $('#resBody').textContent = `You earned ${xp} XP · best combo ×${best} · ${Object.keys(rated).length} cards rated · ${correct}/2 practice correct. In the real app this is just ratedCards + practiceScore rendered with juice.`;
+    update();
+  },900);
+};
+
+// confetti (zero-dep)
+const cv=$('#confetti'), ctx=cv.getContext('2d'); let parts=[];
+function size(){cv.width=innerWidth;cv.height=innerHeight} addEventListener('resize',size); size();
+function fire(){
+  const colors=['#2d6a4f','#24563f','#7bc79a','#0b1015','#ffd166','#7cb7ff'];
+  for(let i=0;i<140;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*0.35,vx:(Math.random()-.5)*9,vy:Math.random()*-7-2,s:Math.random()*7+3,c:colors[i%colors.length],r:Math.random()*Math.PI,vr:(Math.random()-.5)*.3,l:90+Math.random()*40});
+  requestAnimationFrame(tick);
+}
+function tick(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  parts=parts.filter(p=>p.l>0);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.25;p.r+=p.vr;p.l--;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);ctx.restore()});
+  if(parts.length) requestAnimationFrame(tick); else ctx.clearRect(0,0,cv.width,cv.height);
+}
+update();
+</script>
+</body>
+</html>

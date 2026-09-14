@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nerdy — Quiz Shooter Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--brand:#2d6a4f;--hover:#24563f;--tint:#e7f2e9;--hair:#dfe5de;--ink:#0b1015;--muted:rgba(11,16,21,.6);--dim:#888e94;--paper:#fafafa}
+*{border-radius:0!important;box-sizing:border-box}
+body{margin:0;background:#0b1015;color:#fff;font-family:"DM Sans",sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:0 20px}
+.top{border-bottom:1px solid #1f2933;height:56px;display:flex;align-items:center;gap:12px}
+.logo{width:22px;height:22px;background:var(--brand);display:flex;align-items:center;justify-content:center;font-family:"Space Grotesk";font-weight:700}
+.eyebrow{font-family:"DM Mono";font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7bc79a}
+h1{font-family:"Space Grotesk";font-weight:500;letter-spacing:-.04em;font-size:40px;margin:18px 0 6px}
+.sub{color:#9aa3ab;font-size:14.5px;max-width:620px;line-height:1.6}
+.screen{border:1px solid #1f2933;background:#0e141b;margin:20px 0;min-height:560px;position:relative;overflow:hidden}
+.stars{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(123,199,154,.35) 1px,transparent 1.4px);background-size:18px 18px;mask:radial-gradient(ellipse 90% 80% at 50% 40%,#000 30%,transparent 100%)}
+.chars{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:20px;position:relative}
+@media(max-width:700px){.chars{grid-template-columns:1fr}}
+.char{border:1px solid #2a3440;background:#131b23;padding:18px;cursor:pointer;transition:transform .15s}
+.char:hover{border-color:var(--brand);transform:translateY(-2px)}
+.char.sel{border-color:#7bc79a;background:#12241b;outline:2px solid #7bc79a}
+.face{font-size:52px;line-height:1}
+.name{font-family:"Space Grotesk";font-size:18px;margin-top:8px}
+.perk{font-family:"DM Mono";font-size:11px;color:#7bc79a;letter-spacing:.08em;margin-top:4px}
+.desc{font-size:13px;color:#9aa3ab;margin-top:6px;line-height:1.5}
+.btn{background:var(--brand);color:#fff;border:1px solid var(--brand);height:46px;padding:0 22px;font-size:15px;font-weight:600;cursor:pointer}
+.btn:hover{background:var(--hover)} .btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:active{transform:scale(.985)}
+.hud{display:flex;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid #1f2933;font-family:"DM Mono";font-size:12px;position:relative;z-index:2}
+.pill{border:1px solid #2a3440;padding:5px 10px;color:#c8d0d6}
+.pill b{color:#fff}
+.arena{position:relative;height:300px;z-index:1}
+.player{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:56px;transition:left .3s}
+.enemy{position:absolute;top:26px;left:50%;transform:translateX(-50%);text-align:center;transition:all .3s}
+.eface{font-size:64px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.6))}
+.ehp{display:flex;gap:4px;justify-content:center;margin-top:6px}
+.dot{width:22px;height:8px;background:#7bc79a;border:1px solid #7bc79a}
+.dot.off{background:transparent;border-color:#3a4554}
+.ename{font-family:"DM Mono";font-size:11px;letter-spacing:.12em;color:#ffb4a2;margin-top:6px;text-transform:uppercase}
+.laser{position:absolute;width:4px;background:#7bff9e;box-shadow:0 0 12px #7bff9e;left:50%;z-index:3}
+.elaser{position:absolute;width:4px;background:#ff8f7d;box-shadow:0 0 12px #ff8f7d;left:50%;z-index:3}
+@keyframes shake{0%,100%{transform:translateX(-50%)}25%{transform:translateX(calc(-50% - 8px))}75%{transform:translateX(calc(-50% + 8px))}}
+.shake{animation:shake .3s}
+@keyframes boom{0%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.4) rotate(8deg);filter:brightness(2)}100%{transform:translateX(-50%) scale(0);opacity:0}}
+.boom{animation:boom .45s forwards}
+@keyframes floaty{0%,100%{margin-top:0}50%{margin-top:-10px}}
+.floaty{animation:floaty 2.4s ease-in-out infinite}
+.qpanel{background:#fff;color:var(--ink);margin:0 16px 16px;padding:18px;position:relative;z-index:2}
+.q{font-family:"Space Grotesk";font-size:22px;letter-spacing:-.02em}
+.opts{display:grid;gap:8px;margin-top:12px}
+.opt{border:1px solid var(--hair);padding:12px 14px;cursor:pointer;font-size:15px;background:#fff}
+.opt:hover{border-color:var(--brand);background:var(--tint)}
+.opt.right{border-color:var(--brand);background:var(--tint);outline:2px solid var(--brand)}
+.opt.wrong{border-color:#a53f34;background:#fff4f3}
+.exp{display:none;margin-top:10px;font-size:13.5px;color:var(--muted);border-top:1px dashed var(--hair);padding-top:10px;line-height:1.6}
+.exp.show{display:block}
+.float{position:fixed;font-family:"Space Grotesk";font-weight:700;color:#7bff9e;pointer-events:none;z-index:99;font-size:22px;animation:rise .9s forwards}
+@keyframes rise{to{opacity:0;transform:translateY(-60px)}}
+canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:98}
+.foot{color:#5b6570;font-size:12.5px;padding:0 0 40px;font-family:"DM Mono"}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div class="wrap">
+<div class="top"><div class="logo">N</div><span class="eyebrow">nerdy-hack · quiz shooter · prototype</span><span style="margin-left:auto" class="eyebrow" id="xpTop">0 XP</span></div>
+<h1>Pick your pilot.</h1>
+<p class="sub">Each quiz question becomes an enemy. Correct answer = your ship fires. Wrong answer = shield absorbs it, you get the explanation, retry for reduced XP. No lives lost on first miss — K-5 rule.</p>
+
+<div class="screen" id="screen">
+<div class="stars"></div>
+
+<!-- PICK -->
+<div id="pick">
+<div class="chars" id="chars"></div>
+<div style="padding:0 20px 20px;position:relative"><button class="btn" id="launch" disabled>Launch mission →</button></div>
+</div>
+
+<!-- GAME -->
+<div id="game" style="display:none">
+<div class="hud"><span class="pill">WAVE <b id="wave">1/4</b></span><span class="pill">SCORE <b id="score">0</b></span><span class="pill">STREAK <b id="streak">×1</b></span><span class="pill" id="pilotPill">🦉 NOVA</span></div>
+<div class="arena" id="arena">
+<div class="enemy floaty" id="enemy"><div class="eface" id="eface">👾</div><div class="ehp" id="ehp"></div><div class="ename" id="ename">BUGLOB · FRACTIONS</div></div>
+<div class="player" id="player">🦉</div>
+</div>
+<div class="qpanel"><div class="eyebrow" style="color:var(--brand)" id="qtag">Q1 · fractions</div><div class="q" id="qtext"></div><div class="opts" id="opts"></div><div class="exp" id="exp"></div></div>
+</div>
+
+<!-- END -->
+<div id="end" style="display:none;padding:60px 30px;text-align:center;position:relative">
+<div style="font-size:72px" id="endFace">🏆</div>
+<h1 id="endTitle">Mission clear!</h1>
+<p class="sub" style="margin:0 auto" id="endBody"></p>
+<div style="margin-top:20px"><button class="btn" onclick="location.reload()">↻ Fly again</button></div>
+</div>
+</div>
+<div class="foot">maps to real code → assessment artifact questions = enemies · scoreAssessment() = hit detection · wrong-question items = surviving enemies in ReviewQueue</div>
+</div>
+
+<script>
+const CHARS=[
+{id:'nova',face:'🦉',name:'Nova the Owl',perk:'BALANCED · +5 bonus on streaks',desc:'Wise, calm. Best for reading + math. The default pilot.',color:'#7bc79a'},
+{id:'sprout',face:'🌱',name:'Sprout',perk:'SHIELD · first miss never breaks combo',desc:'Forgiving. Perfect for K-5 kids afraid of wrong answers.',color:'#ffd166'},
+{id:'bolt',face:'⚡',name:'Bolt',perk:'SPEEDY · correct = +30 XP (high risk)',desc:'For confident kids. Bigger rewards, combo resets harder.',color:'#7cb7ff'},
+];
+const WAVES=[
+{q:'Which is bigger: 3/4 or 2/3?',topic:'fractions',opts:['2/3','3/4','Equal'],correct:1,exp:'3/4 = 9/12, 2/3 = 8/12. So 3/4 wins!',foe:'👾',name:'BUGLOB · FRACTIONS',hp:1},
+{q:'7 × 8 = ?',topic:'multiplication',opts:['54','56','63'],correct:1,exp:'7 × 8 = 56. (7×4=28, double it.)',foe:'👹',name:'MUMBLEGON · TIMES TABLES',hp:1},
+{q:'7 + 5 = ?',topic:'addition',opts:['11','12','13'],correct:1,exp:'7+3=10, plus 2 more = 12.',foe:'👻',name:'WOBBLER · ADDITION',hp:1},
+{q:'BOSS: You have ½ pizza + ¼ pizza. How much?',topic:'boss · fractions',opts:['¾ pizza','1 whole pizza','½ pizza'],correct:0,exp:'½ = 2/4. 2/4 + 1/4 = 3/4. Boss down!',foe:'🐲',name:'BOSS · PIZZA DRAGON',hp:2},
+];
+let pick='nova', wi=0, xp=0, streak=1, best=1, tries=0, correctFirst=0, bossHp=0;
+const $=s=>document.querySelector(s);
+const charsEl=$('#chars');
+CHARS.forEach(c=>{const d=document.createElement('div');d.className='char';d.innerHTML=`<div class="face">${c.face}</div><div class="name">${c.name}</div><div class="perk">${c.perk}</div><div class="desc">${c.desc}</div>`;d.onclick=()=>{document.querySelectorAll('.char').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');pick=c.id;$('#launch').disabled=false;};if(c.id==='nova'){d.classList.add('sel')}charsEl.appendChild(d)});
+
+$('#launch').onclick=()=>{$('#pick').style.display='none';$('#game').style.display='block';const c=CHARS.find(x=>x.id===pick);$('#player').textContent=c.face;$('#pilotPill').textContent=c.face+' '+c.name.split(' ')[0].toUpperCase();renderWave();};
+
+function renderWave(){
+const w=WAVES[wi]; tries=0; bossHp=w.hp;
+$('#wave').textContent=(wi+1)+'/'+WAVES.length;
+$('#qtag').textContent='Q'+(wi+1)+' · '+w.topic;
+$('#qtext').textContent=w.q; $('#exp').className='exp'; $('#exp').textContent='';
+$('#eface').textContent=w.foe; $('#ename').textContent=w.name;
+const ehp=$('#ehp'); ehp.innerHTML=''; for(let i=0;i<w.hp;i++){const d=document.createElement('div');d.className='dot';ehp.appendChild(d)}
+const en=$('#enemy'); en.classList.remove('boom'); en.style.opacity=1; en.style.transform='translateX(-50%)';
+const o=$('#opts'); o.innerHTML='';
+w.opts.forEach((t,i)=>{const d=document.createElement('div');d.className='opt';d.textContent=t;d.onclick=(e)=>shoot(i,d,e);o.appendChild(d)});
+}
+function float(t,x,y){const el=document.createElement('div');el.className='float';el.textContent=t;el.style.left=x+'px';el.style.top=y+'px';document.body.appendChild(el);setTimeout(()=>el.remove(),950)}
+function laser(color,fromTop){return new Promise(res=>{const a=$('#arena');const l=document.createElement('div');l.className=color==='g'?'laser':'elaser';const px=a.clientWidth/2;l.style.left=px+'px';if(color==='g'){l.style.bottom='70px';l.style.height='0px';a.appendChild(l);let h=0;const t=setInterval(()=>{h+=22;l.style.height=h+'px';if(h>190){clearInterval(t);l.remove();res()}},16)}else{l.style.top='90px';l.style.height='0px';a.appendChild(l);let h=0;const t=setInterval(()=>{h+=22;l.style.height=h+'px';if(h>170){clearInterval(t);l.remove();res()}},16)}})}
+async function shoot(i,el,e){
+if(el.classList.contains('right'))return;
+const w=WAVES[wi]; const c=CHARS.find(x=>x.id===pick);
+if(i===w.correct){
+el.classList.add('right');
+await laser('g');
+bossHp--; document.querySelectorAll('#ehp .dot')[bossHp]?.classList.add('off');
+if(bossHp>0){$('#exp').textContent='Direct hit! Boss has ' + bossHp + ' HP left — finish it!';$('#exp').classList.add('show');[...$('#opts').children].forEach((o,oi)=>{if(oi!==i)o.style.opacity=.4});return;}
+$('#enemy').classList.add('boom');
+let gain = tries===0 ? (pick==='bolt'?30:25) : 10;
+if(tries===0 && (pick==='nova')) gain+=5;
+if(tries===0){gain+=Math.min(streak,3)*2; if(!(pick==='sprout'&&false)){} }
+if(tries===0){correctFirst++; if(!(pick==='sprout'&&tries>0)) {streak++; best=Math.max(best,streak)}} 
+xp+=gain; $('#score').textContent=xp; $('#xpTop').textContent=xp+' XP'; $('#streak').textContent='×'+streak;
+float('+'+gain+' XP',e.clientX,e.clientY); boom();
+$('#exp').textContent='✅ '+w.exp; $('#exp').classList.add('show');
+setTimeout(()=>{wi++; if(wi<WAVES.length){renderWave()} else {finish()}},1100);
+}else{
+tries++;
+el.classList.add('wrong');
+const en=$('#enemy'); en.classList.remove('shake'); void en.offsetWidth; en.classList.add('shake');
+await laser('r');
+$('#player').classList.remove('shake'); void document.body.offsetWidth; $('#player').classList.add('shake');
+$('#exp').textContent='🛡️ Shield absorbed it! '+w.exp+' Try again — still +10 XP if you get it.'; $('#exp').classList.add('show');
+if(!(pick==='sprout')){streak=1; $('#streak').textContent='×1';}
+setTimeout(()=>el.classList.remove('wrong'),900);
+}
+}
+function finish(){
+$('#game').style.display='none';$('#end').style.display='block';
+const c=CHARS.find(x=>x.id===pick);
+$('#endFace').textContent=c.face;
+$('#endTitle').textContent = correctFirst>=3 ? 'Flawless victory!' : correctFirst>=2 ? 'Mission clear!' : 'Good reps, pilot!';
+$('#endBody').textContent=`${xp} XP · ${correctFirst}/4 first-try · best streak ×${best}. In the real app: first-try correct = quiz_complete, misses = wrong-question items queued in ReviewQueue for a revenge round.`;
+boom(); boom();
+}
+// confetti
+const cv=$('#fx'),ctx=cv.getContext('2d');let P=[];function sz(){cv.width=innerWidth;cv.height=innerHeight}addEventListener('resize',sz);sz();
+function boom(){const col=['#7bff9e','#2d6a4f','#ffd166','#7cb7ff','#fff'];for(let i=0;i<120;i++)P.push({x:innerWidth/2+(Math.random()-.5)*300,y:innerHeight*0.4,vx:(Math.random()-.5)*9,vy:Math.random()*-7-2,s:Math.random()*7+3,c:col[i%col.length],r:0,vr:(Math.random()-.5)*.3,l:100});requestAnimationFrame(tick)}
+function tick(){ctx.clearRect(0,0,cv.width,cv.height);P=P.filter(p=>p.l>0);P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.25;p.r+=p.vr;p.l--;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);ctx.restore()});if(P.length)requestAnimationFrame(tick)}
+</script>
+</body>
+</html>

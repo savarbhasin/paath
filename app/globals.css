@@ -1,0 +1,311 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #ffffff;
+  --color-bg-alt: #eef3ee;
+  --color-paper: #f9fbf8;
+  --color-paper-blue: #f4f7f4;
+  --color-blue-paper: #f0f5f0;
+  --color-blue-tint: #e7f2e9;
+  --color-blue: #2d6a4f;
+  --color-blue-hover: #24563f;
+  --color-blue-light: #40916c;
+
+  --color-text: #17211b;
+  --color-text-muted: #69756d;
+  --color-text-dim: #829087;
+
+  --color-border: #dfe5de;
+  --color-border-light: rgba(23, 33, 27, 0.06);
+  --color-border-strong: #b9cec0;
+  --color-border-dashed: #17211b29;
+
+  --font-heading: var(--font-heading-next, "Space Grotesk", sans-serif);
+  --font-brand: var(--font-brand-next, "Lora", Georgia, serif);
+  --font-body: var(--font-body-next, "DM Sans", sans-serif);
+  --font-mono: var(--font-mono-next, "DM Mono", monospace);
+
+  --ease-out-strong: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+  --muted: var(--color-text-muted);
+  --line: var(--color-border);
+  --panel: #ffffff;
+  --accent: var(--color-blue);
+  --accent-soft: var(--color-blue-tint);
+  --nav-height: 56px;
+}
+
+* {
+  box-sizing: border-box;
+  border-radius: 0 !important;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+[contenteditable="true"]:focus,
+[contenteditable="true"]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-heading,
+.font-body,
+.font-mono {
+  font-feature-settings: "cv09" on, "cv03" on, "cv04" on, "cv11" on;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+/* Supermemory helpers */
+.container-edge {
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+}
+
+.section-header {
+  position: sticky;
+  top: calc(var(--nav-height) - 1px);
+  z-index: 20;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(45, 106, 79, 0.25) 1px, transparent 1.4px);
+  background-size: 16px 16px;
+}
+
+.pressable {
+  transition: transform 0.12s var(--ease-out-strong), background-color 0.18s var(--ease-out-strong), border-color 0.18s var(--ease-out-strong), color 0.18s var(--ease-out-strong);
+}
+
+.pressable:active {
+  transform: scale(0.985);
+}
+
+/* Re-allow rounding only for micro-dots */
+.allow-round,
+.allow-round * {
+  border-radius: 9999px !important;
+}
+
+.tiptap {
+  min-height: 460px;
+  outline: none;
+  line-height: 1.75;
+}
+
+.tiptap > * + * {
+  margin-top: 0.9rem;
+}
+
+.tiptap h1,
+.tiptap h2,
+.tiptap h3 {
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.tiptap h1 {
+  font-size: 2rem;
+}
+
+.tiptap h2 {
+  font-size: 1.5rem;
+}
+
+.tiptap h3 {
+  font-size: 1.2rem;
+}
+
+.tiptap ul,
+.tiptap ol {
+  padding-left: 1.5rem;
+}
+
+.tiptap blockquote {
+  border-left: 3px solid var(--color-blue);
+  color: var(--color-text-muted);
+  padding-left: 1rem;
+}
+
+.tiptap pre {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  background: #18231d;
+  color: #dff3e4;
+  padding: 1rem;
+  font-family: var(--font-mono), "SFMono-Regular", Consolas, monospace;
+  font-size: 0.9rem;
+}
+
+.tiptap code {
+  background: var(--color-blue-tint);
+  color: var(--color-text);
+  padding: 0.12rem 0.3rem;
+  font-family: var(--font-mono), "SFMono-Regular", Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.tiptap pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.tiptap a {
+  color: var(--color-blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Flashcard 3D flip */
+.flashcard-scene {
+  perspective: 1200px;
+}
+
+.flashcard-inner {
+  display: grid;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.45s var(--ease-out-strong);
+  will-change: transform;
+}
+
+.flashcard-inner.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.flashcard-face {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 0;
+  overflow-y: auto;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flashcard-back {
+  transform: rotateY(180deg);
+}
+
+/* Simple reveal animation for inline (notebook) flashcard answers */
+@keyframes flashcard-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.flashcard-reveal {
+  animation: flashcard-reveal 0.25s var(--ease-out-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flashcard-inner {
+    transition: none;
+  }
+  .flashcard-reveal {
+    animation: none;
+  }
+}
+
+/* Transient notice auto-dismiss countdown (thin loading bar). */
+@keyframes notice-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.notice-countdown {
+  transform-origin: left;
+  animation: notice-countdown 3s linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice-countdown {
+    animation: none;
+  }
+}
+
+/* Thinking shimmer — horizontal light sweep through placeholder text
+   while the course chat is working. Replaces the spinner. */
+@keyframes thinking-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.thinking-shimmer {
+  background: linear-gradient(
+    100deg,
+    var(--color-text-dim) 30%,
+    var(--color-border-strong) 45%,
+    var(--color-blue-tint) 50%,
+    var(--color-border-strong) 55%,
+    var(--color-text-dim) 70%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: thinking-shimmer 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinking-shimmer {
+    animation: none;
+    background: none;
+    color: var(--color-text-dim);
+  }
+}
+
+/* Pending AI draft awaiting accept/discard — renders as plain text; the
+   mark itself still ties ranges to their draft for the review bar. */
+.tiptap .pending-insert {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  background: transparent;
+  border-bottom: 0;
+}

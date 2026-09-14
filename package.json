@@ -1,0 +1,48 @@
+{
+  "name": "nerdy-hack",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "video:worker": "node --env-file-if-exists=.env.local scripts/video-worker.mts",
+    "video:renderer:build": "docker build -t paath-video-renderer:0.8.34 scripts/video-renderer"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.115.0",
+    "@tiptap/extension-link": "^3.31.2",
+    "@tiptap/extension-unique-id": "^3.31.2",
+    "@tiptap/react": "^3.31.2",
+    "@tiptap/starter-kit": "^3.31.2",
+    "@types/three": "^0.186.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "katex": "^0.18.7",
+    "lucide-react": "^1.40.0",
+    "mermaid": "^11.17.2",
+    "next": "^16.3.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.6.0",
+    "three": "^0.186.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.4.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.4",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3"
+  }
+}
