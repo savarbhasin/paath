@@ -6,7 +6,7 @@ import { buildWorld, type InteractableDef } from "./world";
 import { Player, collideCircle, updateCamera } from "./player";
 
 export type GameCallbacks = {
-  onPrompt: (label: string | null, kind: "door" | "desk" | "exit") => void;
+  onPrompt: (label: string | null, kind: "door" | "desk" | "exit" | "professor") => void;
   onArea: (title: string, sub: string) => void;
   onPanel: (panel: ClassroomPanel | null) => void;
   onLock: (locked: boolean) => void;
@@ -23,6 +23,7 @@ export class SchoolGame {
   private camPos = new THREE.Vector3(0, 3, 6);
   private keys = new Set<string>();
   private areaId = "corridor";
+  private hallwayReturn: { x: number; z: number; yaw: number } | null = null;
   private areas!: ReturnType<typeof buildWorld>["areas"];
   private interactables: InteractableDef[] = [];
   private active: InteractableDef | null = null;
@@ -94,7 +95,10 @@ export class SchoolGame {
 
   /* ---------------- input ---------------- */
   private onKeyDown = (e: KeyboardEvent) => {
+    if (e.target instanceof HTMLElement && (e.target.closest("input, textarea, button, a") || e.target.isContentEditable)) return;
     const k = e.key.toLowerCase();
+    if (this.panelOpen) { if (k === "escape") this.cb.onPanel(null); return; }
+    if (e.repeat && k === "e") return;
     if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k)) e.preventDefault();
     if (k === "e") {
       if (this.panelOpen) this.cb.onPanel(null);
@@ -118,7 +122,7 @@ export class SchoolGame {
     }
   };
   private onMouseDown = (e: MouseEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || e.target !== this.canvas || this.panelOpen) return;
     if (document.pointerLockElement !== this.canvas) {
       this.dragging = true;
       this.lastPX = e.clientX;
@@ -168,6 +172,7 @@ export class SchoolGame {
   private boundResize = () => this.resize();
 
   private bind() {
+    window.addEventListener("blur", this.onBlur);
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
     window.addEventListener("mousemove", this.onMouseMove);
@@ -180,6 +185,13 @@ export class SchoolGame {
     this.canvas.addEventListener("touchend", this.onTouchEnd);
     this.canvas.addEventListener("touchcancel", this.onTouchEnd);
   }
+
+  openClassroom() {
+    const course = this.coursesById.get(this.areaId.replace("room:", ""));
+    if (course) this.cb.onPanel({ course, stats: this.data.stats[course.id] ?? null, station: "notebooks" });
+  }
+
+  private onBlur = () => { this.keys.clear(); this.dragging = false; };
 
   captureMouse() {
     if (document.pointerLockElement !== this.canvas) {
@@ -205,11 +217,12 @@ export class SchoolGame {
     const apply = () => {
       this.areaId = areaId;
       const area = this.areas[areaId];
-      this.player.place(area.spawn.x, area.spawn.z, area.spawn.yaw);
+      const spawn = areaId === "corridor" && this.hallwayReturn ? this.hallwayReturn : area.spawn;
+      this.player.place(spawn.x, spawn.z, spawn.yaw);
       this.camPos.set(
-        area.spawn.x - Math.sin(area.spawn.yaw) * 4,
+        spawn.x - Math.sin(spawn.yaw) * 4,
         2.4,
-        area.spawn.z - Math.cos(area.spawn.yaw) * 4,
+        spawn.z - Math.cos(spawn.yaw) * 4,
       );
       this.active = null;
       this.cb.onPrompt(null, "door");
@@ -232,22 +245,32 @@ export class SchoolGame {
     if (!this.active || this.panelOpen) return;
     const it = this.active;
     if (it.kind === "enter-course") {
+      this.hallwayReturn = { x: it.x, z: it.z, yaw: it.x < 0 ? Math.PI / 2 : -Math.PI / 2 };
       this.enterArea(`room:${it.course.id}`, true);
     } else if (it.kind === "exit") {
       this.enterArea("corridor", true);
+    } else if (it.kind === "professor") {
+      window.open(`/courses/${it.course.id}`, "_blank", "noopener");
     } else if (it.kind === "desk") {
-      this.cb.onPanel({ course: it.course, stats: this.data.stats[it.course.id] ?? null });
+      this.cb.onPanel({ course: it.course, stats: this.data.stats[it.course.id] ?? null, station: it.station });
     }
   }
 
   setPanelOpen(open: boolean) {
     this.panelOpen = open;
+    this.keys.clear();
+    this.dragging = false;
+    this.stickId = this.lookId = null;
+    this.stickDX = this.stickDY = 0;
+    if (open && document.pointerLockElement === this.canvas) document.exitPointerLock();
   }
 
-  private promptFor(it: InteractableDef): { label: string; kind: "door" | "desk" | "exit" } {
+  private promptFor(it: InteractableDef): { label: string; kind: "door" | "desk" | "exit" | "professor" } {
     if (it.kind === "enter-course") return { label: `Enter ${it.course.title}`, kind: "door" };
     if (it.kind === "exit") return { label: "Back to hallway", kind: "exit" };
-    return { label: `Open ${it.course.title} desk`, kind: "desk" };
+    if (it.kind === "professor") return { label: "Talk to professor", kind: "professor" };
+    if (it.station === "practice") return { label: "Practice", kind: "desk" };
+    return { label: `Open ${it.station === "videos" ? "media lounge" : "notebook library"}`, kind: "desk" };
   }
 
   private tick(dt: number) {
@@ -266,6 +289,7 @@ export class SchoolGame {
       this.player.update(dt, mx, mz, running);
       const area = this.areas[this.areaId];
       collideCircle(this.player.pos, 0.35, area.bounds, area.obstacles);
+      this.player.group.position.copy(this.player.pos);
     }
     const area = this.areas[this.areaId];
     updateCamera(this.camera, this.player, area, dt, this.camPos);
@@ -338,6 +362,7 @@ export class SchoolGame {
   dispose() {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
+    window.removeEventListener("blur", this.onBlur);
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
     window.removeEventListener("mousemove", this.onMouseMove);

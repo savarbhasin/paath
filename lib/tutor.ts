@@ -72,19 +72,22 @@ export function parseChatMessage(row: Record<string, unknown>): ChatMessage {
   };
 }
 
-/** Validated payload for an explanation artifact (OpenAI Structured Outputs). */
+/** Validated payload for an explanation artifact (OpenAI Structured Outputs).
+ *  Lengths are intentionally unbounded — the model decides how long the
+ *  explanation needs to be. Rendering chunks long text into Tiptap nodes
+ *  instead of truncating it. */
 export const explanationPayloadSchema = z.object({
-  summary: z.string().trim().min(1).max(2000),
+  summary: z.string().trim().min(1),
   sections: z
     .array(
       z.object({
-        heading: z.string().trim().min(1).max(120),
-        markdown: z.string().trim().min(1).max(4000),
+        heading: z.string().trim().min(1),
+        markdown: z.string().trim().min(1),
       }),
     )
     .min(1)
     .max(6),
-  example: z.string().trim().max(2000).optional(),
+  example: z.string().trim().optional(),
 });
 
 export type ExplanationPayload = z.infer<typeof explanationPayloadSchema>;

@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, BookOpen, DoorOpen, X } from "lucide-react";
+import { ArrowLeft, DoorOpen, MessageCircle } from "lucide-react";
 
+import "./school-game.css";
+import { ClassroomPanelView } from "./ClassroomPanel";
 import { loadSchoolData } from "./data";
 import { SchoolGame } from "./game";
 import type { ClassroomPanel, SchoolData } from "./types";
@@ -14,12 +16,13 @@ export function SchoolGameView() {
   const [data, setData] = useState<SchoolData | null>(null);
   const [failed, setFailed] = useState(false);
   const [started, setStarted] = useState(false);
-  const [prompt, setPrompt] = useState<{ label: string; kind: "door" | "desk" | "exit" } | null>(null);
+  const [prompt, setPrompt] = useState<{ label: string; kind: "door" | "desk" | "exit" | "professor" } | null>(null);
   const [area, setArea] = useState({ title: "Main Corridor", sub: "Pick a classroom" });
   const [panel, setPanel] = useState<ClassroomPanel | null>(null);
   const [locked, setLocked] = useState(false);
   const [offline, setOffline] = useState(false);
   const [courseCount, setCourseCount] = useState(0);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -67,6 +70,8 @@ export function SchoolGameView() {
         interact: () => game.interact(),
       };
     } catch {
+      // Renderer creation is an imperative external-system failure.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFailed(true);
     }
     return () => {
@@ -86,7 +91,7 @@ export function SchoolGameView() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-40 bg-[#05090d] font-body text-white">
+    <div className="school-game fixed inset-0 z-40 bg-[#05090d] font-body text-white">
       <div className="absolute inset-0">
         <canvas
           ref={canvasRef}
@@ -98,7 +103,7 @@ export function SchoolGameView() {
       </div>
 
       {/* top-left: area card */}
-      <div className="pointer-events-none absolute left-4 top-4 border border-white/15 bg-black/55 px-4 py-3">
+      <div className="pointer-events-none absolute left-5 top-5 rounded-2xl border border-white/15 bg-slate-950/70 px-5 py-4 backdrop-blur-xl">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#7bc79a]">
           {offline ? "Offline demo" : "Nerdy school"}
         </p>
@@ -110,7 +115,7 @@ export function SchoolGameView() {
       <div className="absolute right-4 top-4 flex gap-2">
         <Link
           href="/"
-          className="flex h-10 items-center gap-2 border border-white/15 bg-black/55 px-4 text-sm font-medium hover:bg-black/80"
+          className="rounded-xl backdrop-blur-xl flex h-10 items-center gap-2 border border-white/15 bg-black/55 px-4 text-sm font-medium hover:bg-black/80"
         >
           <ArrowLeft className="h-4 w-4" /> Workspace
         </Link>
@@ -124,122 +129,46 @@ export function SchoolGameView() {
         <button
           type="button"
           onClick={() => gameRef.current?.interact()}
-          className="absolute bottom-24 left-1/2 flex -translate-x-1/2 items-center gap-2 border border-[#7bc79a] bg-black/70 px-5 py-3 text-sm font-medium text-white hover:bg-black/90"
+          className="absolute bottom-32 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-[#7bc79a] bg-slate-950/90 shadow-lg px-5 py-3 text-sm font-medium text-white hover:bg-black/90"
         >
-          <DoorOpen className="h-4 w-4 text-[#7bc79a]" />
+          {prompt.kind === "professor" ? (
+            <MessageCircle className="h-4 w-4 text-[#7bc79a]" />
+          ) : (
+            <DoorOpen className="h-4 w-4 text-[#7bc79a]" />
+          )}
           {prompt.label}
           <kbd className="border border-white/25 bg-white/10 px-2 py-0.5 font-mono text-xs">E</kbd>
         </button>
       ) : null}
 
       {/* mouse-capture hint */}
-      {started && !locked ? (
-        <p className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[11px] text-white/50">
+      {started && !locked && !panel ? (
+        <p className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[11px] text-white/50">
           Click the world to look around · WASD to walk · Shift to run
         </p>
       ) : null}
 
-      {/* classroom desk panel */}
-      {panel ? (
-        <aside className="absolute bottom-0 right-0 top-0 w-full max-w-md overflow-y-auto border-l border-white/15 bg-[#0b1015]/95 p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#7bc79a]">Classroom desk</p>
-              <h2 className="mt-1 font-heading text-2xl font-medium tracking-[-0.02em]">{panel.course.title}</h2>
-            </div>
-            <button
-              type="button"
-              onClick={closePanel}
-              className="flex h-9 w-9 items-center justify-center border border-white/15 hover:bg-white/10"
-              aria-label="Close panel"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+      {panel ? <ClassroomPanelView key={`${panel.course.id}:${panel.station}`} panel={panel} offline={offline} onClose={closePanel} /> : null}
 
-          <h3 className="mt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-white/50">
-            Notebooks · {panel.course.notebooks.length}
-          </h3>
-          {panel.course.notebooks.length === 0 ? (
-            <p className="mt-2 text-sm text-white/60">No notebooks yet — the shelf is empty.</p>
-          ) : (
-            <ul className="mt-2 space-y-2">
-              {panel.course.notebooks.map((n) => (
-                <li key={n.id}>
-                  <a
-                    href={`/courses/${panel.course.id}/notebooks/${n.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="group flex items-center gap-3 border border-white/12 bg-white/[0.03] px-4 py-3 hover:border-[#7bc79a]/60"
-                  >
-                    <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: panel.course.color }} />
-                    <span className="min-w-0 flex-1 truncate text-sm">{n.title}</span>
-                    <BookOpen className="h-4 w-4 shrink-0 text-white/40 group-hover:text-[#7bc79a]" />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <h3 className="mt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-white/50">Progress</h3>
-          {!panel.stats ? (
-            <p className="mt-2 text-sm text-white/60">No practice data yet.</p>
-          ) : (
-            <div className="mt-2 border border-white/12">
-              {[
-                ["Quiz attempts", panel.stats.attempts],
-                ["Cards reviewed", panel.stats.reviews],
-                ["Sources ready", panel.stats.sourcesReady],
-              ].map(([label, v]) => (
-                <div key={label as string} className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 text-sm last:border-0">
-                  <span className="text-white/60">{label}</span>
-                  <span className="font-heading text-lg">{v}</span>
-                </div>
-              ))}
-              {panel.stats.topics.map((t) => (
-                <div key={t.key} className="border-b border-white/10 px-4 py-2.5 last:border-0">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>{t.label}</span>
-                    <span className="font-mono text-xs text-[#7bc79a]">{Math.round(t.score * 100)}%</span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 bg-white/10">
-                    <div className="h-full bg-[#2d6a4f]" style={{ width: `${Math.round(t.score * 100)}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <a
-            href={`/courses/${panel.course.id}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-6 flex h-11 items-center justify-center gap-2 bg-[#2d6a4f] text-sm font-medium text-white hover:bg-[#24563f]"
-          >
-            Open full course <ArrowLeft className="h-4 w-4 rotate-180" />
-          </a>
-          <p className="mt-3 font-mono text-[11px] text-white/40">Links open in a new tab — the game keeps running.</p>
-        </aside>
-      ) : null}
 
       {/* start overlay */}
       {!started && !failed ? (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/70 p-6 text-center">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center school-welcome p-6 text-center">
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#7bc79a]">
             {data ? (offline ? "Offline demo school" : "Your school, built from your courses") : "Building the school…"}
           </p>
-          <h1 className="mt-3 font-heading text-5xl font-medium tracking-[-0.04em]">
-            {data ? `${courseCount} classrooms` : "Loading"}
+          <h1 className="mt-3 max-w-2xl font-heading text-5xl font-medium tracking-[-0.04em]">
+            {data ? "Learning, with a little adventure." : "Loading"}
           </h1>
           <p className="mt-3 max-w-md text-sm leading-6 text-white/60">
-            Walk the corridor. Each door is one of your courses — step inside to find your notebooks,
+            Explore {courseCount} classrooms. Each door is one of your courses — step inside to find your notebooks,
             material, quizzes and progress on the shelves and boards.
           </p>
           <button
             type="button"
             onClick={start}
             disabled={!data}
-            className="mt-6 flex h-12 items-center gap-2 bg-[#2d6a4f] px-8 text-[15px] font-medium text-white hover:bg-[#24563f] disabled:opacity-40"
+            className="rounded-2xl shadow-xl shadow-emerald-950/40 mt-6 flex h-12 items-center gap-2 bg-[#2d6a4f] px-8 text-[15px] font-medium text-white hover:bg-[#24563f] disabled:opacity-40"
           >
             <DoorOpen className="h-5 w-5" /> Enter the school
           </button>

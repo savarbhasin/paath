@@ -81,13 +81,6 @@ export function whiteboardTexture(title: string, lines: string[]): THREE.CanvasT
   x.font = "400 34px 'DM Sans', sans-serif";
   x.fillStyle = "#33413a";
   lines.slice(0, 8).forEach((l, i) => x.fillText(l, 48, 190 + i * 40));
-  // marker doodle
-  x.strokeStyle = "#d64545";
-  x.lineWidth = 5;
-  x.beginPath(); x.arc(900, 400, 52, 0, Math.PI * 2); x.stroke();
-  x.fillStyle = "#d64545";
-  x.font = "600 30px 'DM Sans', sans-serif";
-  x.fillText("A+", 878, 412);
   return toTexture(c);
 }
 
@@ -141,5 +134,44 @@ export function signTexture(text: string): THREE.CanvasTexture {
   x.textAlign = "center";
   x.textBaseline = "middle";
   x.fillText(text.length > 24 ? text.slice(0, 23) + "…" : text.toUpperCase(), 512, 100);
+  return toTexture(c);
+}
+
+// Decorative lesson covers, independent of the user's actual video collection.
+export function videoWallTexture(): THREE.CanvasTexture {
+  const [c, x] = makeCanvas(1024, 640);
+  x.fillStyle = "#101827";
+  x.fillRect(0, 0, 1024, 640);
+  x.fillStyle = "#e8edff";
+  x.font = "600 42px sans-serif";
+  x.fillText("VIDEOS & LESSONS", 36, 62);
+  const titles = ["Explore the cosmos", "The world of geometry", "Inside a living cell", "Waves & sound"];
+  const colors = ["#5551b8", "#137c87", "#24815b", "#bd624b"];
+  titles.forEach((title, i) => {
+    const ox = 36 + (i % 2) * 488, oy = 96 + Math.floor(i / 2) * 260;
+    x.save(); x.translate(ox, oy);
+    const g = x.createLinearGradient(0, 0, 450, 200);
+    g.addColorStop(0, colors[i]); g.addColorStop(1, "#172337");
+    x.fillStyle = g; x.fillRect(0, 0, 464, 200);
+    x.strokeStyle = "#ffffff80"; x.lineWidth = 4;
+    if (i === 0) {
+      x.fillStyle = "#f5c680"; x.beginPath(); x.arc(232, 92, 48, 0, Math.PI * 2); x.fill();
+      x.beginPath(); x.ellipse(232, 92, 110, 24, -.3, 0, Math.PI * 2); x.stroke();
+      for (let j = 0; j < 22; j++) { x.fillStyle = "#ffffffaa"; x.fillRect((j * 79 + 13) % 450, (j * 37 + 7) % 190, 3, 3); }
+    } else if (i === 1) {
+      x.beginPath(); x.moveTo(100, 160); x.lineTo(230, 30); x.lineTo(350, 160); x.closePath(); x.stroke();
+      x.strokeRect(190, 70, 100, 100);
+    } else if (i === 2) {
+      x.fillStyle = "#86d8a9"; x.beginPath(); x.ellipse(232, 100, 125, 72, -.15, 0, Math.PI * 2); x.fill();
+      x.fillStyle = "#b27ecd"; x.beginPath(); x.arc(230, 90, 32, 0, Math.PI * 2); x.fill();
+      x.fillStyle = "#318c6b"; for (let j = 0; j < 6; j++) { x.beginPath(); x.arc(155 + j * 30, 125 + Math.sin(j) * 18, 9, 0, Math.PI * 2); x.fill(); }
+    } else {
+      x.beginPath(); for (let j = 20; j < 440; j++) { const y = 100 + Math.sin(j / 24) * 55; if (j === 20) x.moveTo(j, y); else x.lineTo(j, y); } x.stroke();
+    }
+    x.fillStyle = "#00000060"; x.beginPath(); x.arc(420, 166, 20, 0, Math.PI * 2); x.fill();
+    x.fillStyle = "#ffffff"; x.beginPath(); x.moveTo(414, 156); x.lineTo(430, 166); x.lineTo(414, 176); x.closePath(); x.fill();
+    x.font = "500 24px sans-serif"; x.fillText(title, 0, 232);
+    x.restore();
+  });
   return toTexture(c);
 }

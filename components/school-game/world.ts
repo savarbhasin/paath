@@ -1,13 +1,13 @@
 // Builds the whole school: corridor + one classroom per course.
 // Everything is procedural (no model files). Collision is data-driven AABBs.
 import * as THREE from "three";
-import type { CourseInfo, SchoolData } from "./types";
+import type { CourseInfo, SchoolData, Station } from "./types";
 import {
   doorPlaqueTexture,
   floorTexture,
   posterTexture,
   signTexture,
-  spineTexture,
+  videoWallTexture,
   wallTexture,
   whiteboardTexture,
 } from "./textures";
@@ -26,7 +26,8 @@ export type AreaDef = {
 export type InteractableDef =
   | { kind: "enter-course"; areaId: string; x: number; z: number; radius: number; course: CourseInfo }
   | { kind: "exit"; areaId: string; x: number; z: number; radius: number }
-  | { kind: "desk"; areaId: string; x: number; z: number; radius: number; course: CourseInfo };
+  | { kind: "professor"; areaId: string; x: number; z: number; radius: number; course: CourseInfo }
+  | { kind: "desk"; areaId: string; x: number; z: number; radius: number; course: CourseInfo; station?: Station };
 
 export type WorldBuild = {
   group: THREE.Group;
@@ -82,6 +83,33 @@ function plane(
   m.receiveShadow = true;
   parent.add(m);
   return m;
+}
+
+// Lightweight posed characters; seated knees bend toward the desk.
+function schoolPerson(parent: THREE.Object3D, x: number, z: number, yaw: number, shirt: string, skin: string, seated = false, teacher = false) {
+  const person = new THREE.Group();
+  person.position.set(x, 0, z); person.rotation.y = yaw;
+  if (teacher) person.scale.setScalar(1.12);
+  parent.add(person);
+  const clothes = mat(shirt), trousers = mat("#28354b"), face = mat(skin), hair = mat(teacher ? "#46372e" : "#27232d");
+  const hip = seated ? 0.55 : 0.78;
+  box(person, .5, .57, .3, 0, hip + .29, 0, clothes, true);
+  box(person, .34, .36, .32, 0, hip + .8, 0, face, true);
+  box(person, .37, .13, .34, 0, hip + 1.01, 0, hair);
+  for (const side of [-1, 1]) {
+    box(person, .045, .055, .02, side * .08, hip + .81, .17, mat("#17202b"));
+    if (seated) {
+      box(person, .19, .18, .43, side * .14, hip, .15, trousers);
+      box(person, .18, .43, .18, side * .14, hip - .21, .34, trousers);
+      box(person, .17, .18, .48, side * .32, hip + .23, .2, clothes);
+      box(person, .13, .1, .14, side * .32, hip + .23, .47, face);
+    } else {
+      box(person, .2, .75, .22, side * .14, .4, 0, trousers);
+      box(person, .16, .55, .2, side * .34, hip + .25, 0, clothes);
+      box(person, .14, .14, .18, side * .34, hip - .06, 0, face);
+    }
+    box(person, .21, .1, .3, side * .14, .05, seated ? .38 : .06, mat("#18202d"));
+  }
 }
 
 export function buildWorld(data: SchoolData): WorldBuild {
@@ -203,6 +231,18 @@ export function buildWorld(data: SchoolData): WorldBuild {
     spawn: { x: 0, z: 1.5, yaw: Math.PI },
   };
 
+  // Chatting pairs tucked against the walls, facing each other — not lining the aisle.
+  const chatGroups: Array<{ x: number; z: number; yaw: number; shirt: string; skin: string }> = [
+    { x: -1.9, z: 0.6, yaw: Math.PI, shirt: "#bb795e", skin: "#bd8861" },
+    { x: -1.9, z: -0.5, yaw: 0, shirt: "#6b80bc", skin: "#e8ba91" },
+    { x: 1.9, z: -5.8, yaw: Math.PI, shirt: "#5e9b8c", skin: "#986849" },
+    { x: 1.9, z: -6.9, yaw: 0, shirt: "#b69751", skin: "#d4a782" },
+  ];
+  for (const p of chatGroups) {
+    schoolPerson(group, p.x, p.z, p.yaw, p.shirt, p.skin);
+    areas.corridor.obstacles.push({ minX: p.x - .35, maxX: p.x + .35, minZ: p.z - .3, maxZ: p.z + .3 });
+  }
+
   /* ---------- course doors + classrooms ---------- */
   courses.forEach((course, i) => {
     const s = i % 2 === 0 ? -1 : 1; // left, right, left…
@@ -211,7 +251,9 @@ export function buildWorld(data: SchoolData): WorldBuild {
     // door on corridor wall
     const dx = s * 3.18;
     box(group, 0.18, 2.5, 1.7, dx, 1.25, zc, darkWoodMat);
-    box(group, 0.1, 2.3, 1.4, dx - s * 0.04, 1.15, zc, mat(course.color, { rough: 0.55 }));
+    // Keep the panel behind-face beyond the frame front (0.09 + 0.05 + 0.02 gap).
+    // Coplanar front faces caused the moving checkerboard flicker.
+    box(group, 0.1, 2.3, 1.4, dx - s * 0.16, 1.15, zc, mat(course.color, { rough: 0.55 }));
     plane(
       group, 1.9, 0.6, dx - s * 0.12, 2.78, zc,
       new THREE.MeshBasicMaterial({ map: doorPlaqueTexture(course.title, course.color) }),
@@ -270,53 +312,50 @@ export function buildWorld(data: SchoolData): WorldBuild {
       stats ? `${stats.sourcesReady} sources ready` : "Upload material in the app",
       ...(stats?.topics.slice(0, 3).map((t) => `• ${t.label} — ${Math.round(t.score * 100)}%`) ?? []),
     ];
-    // whiteboard on far wall
-    const bx = s > 0 ? rx1 - 0.08 : rx0 + 0.08;
-    plane(group, 4.6, 2.3, bx, 1.9, zc, new THREE.MeshBasicMaterial({ map: whiteboardTexture(course.title, lines) }), s > 0 ? -Math.PI / 2 : Math.PI / 2);
-    box(group, 0.12, 0.08, 4.8, bx, 0.68, zc, darkWoodMat); // tray
+    // Teaching wall faces the rows of seats, consistently in both wings.
+    plane(group, 5.6, 2.1, rcx, 1.95, rz0 + 0.08, new THREE.MeshBasicMaterial({ map: whiteboardTexture(course.title, lines) }));
+    box(group, 5.8, 0.08, 0.15, rcx, 0.88, rz0 + 0.15, darkWoodMat);
 
-    // bookshelf on back wall with notebook spines
-    const shx = rcx, shz = rz0 + 0.45;
-    box(group, 4.6, 2.1, 0.5, shx, 1.05, shz, darkWoodMat, true);
+    // Open-backed bookcase with three densely packed rows of decorative books.
+    const shx = rcx, shz = rz1 - 0.45;
+    box(group, 4.6, 2.2, 0.08, shx, 1.1, shz + .22, darkWoodMat, true);
+    for (const edge of [-1, 1]) box(group, .12, 2.2, .6, shx + edge * 2.24, 1.1, shz, darkWoodMat, true);
+    const palette = ["#528b74", "#527eb7", "#dda843", "#c4655d", "#8d75b8", "#439b9a", "#dfc7a3"];
     for (let shelf = 0; shelf < 3; shelf++) {
-      box(group, 4.4, 0.06, 0.44, shx, 0.45 + shelf * 0.62, shz, woodMat);
-    }
-    const books = course.notebooks.slice(0, 9);
-    const palette = ["#2d6a4f", "#2f7fe0", "#d9a400", "#d64545", "#7a5fd0", "#0e7c7b"];
-    books.forEach((nb, bi) => {
-      const shelf = Math.floor(bi / 3);
-      const slot = bi % 3;
-      const spine = new THREE.Mesh(
-        new THREE.BoxGeometry(0.5, 0.52, 0.3),
-        new THREE.MeshStandardMaterial({ map: spineTexture(nb.title, palette[bi % palette.length]), roughness: 0.8 }),
-      );
-      spine.position.set(shx - 1.3 + slot * 1.3, 0.45 + shelf * 0.62 + 0.29, shz);
-      spine.castShadow = true;
-      group.add(spine);
-    });
-    if (books.length === 0) {
-      plane(group, 2.2, 0.5, shx, 1.2, shz + 0.26, new THREE.MeshBasicMaterial({ map: signTexture("EMPTY SHELF — ADD NOTES IN APP") }), Math.PI);
+      const base = .15 + shelf * .67;
+      box(group, 4.4, .07, .6, shx, base, shz, woodMat);
+      for (let book = 0; book < 22; book++) {
+        const height = .40 + ((book * 7 + shelf * 3) % 5) * .035;
+        const bx = shx - 2.08 + book * .195;
+        box(group, .155, height, .38, bx, base + .04 + height / 2, shz - .07, mat(palette[(book + shelf * 3) % palette.length]), true);
+        for (const band of [.1, height - .08]) box(group, .13, .018, .012, bx, base + .04 + band, shz - .267, mat("#eedcaa"));
+      }
     }
 
-    // student desks 2x3
+    // student desks 2x3 — every desk is a practice spot
     const obstacles: AABB[] = [];
+    const studentDesks: Array<{ x: number; z: number }> = [];
     for (let r = 0; r < 2; r++) {
       for (let cIdx = 0; cIdx < 3; cIdx++) {
-        const ddx = rcx - 2.2 + cIdx * 2.2;
-        const ddz = zc - 0.6 + r * 2.2;
+        const ddx = rcx - 2.1 + cIdx * 2.1;
+        const ddz = zc - 1.8 + r * 2.1;
         box(group, 1.3, 0.1, 0.8, ddx, 0.74, ddz, woodMat, true);
         box(group, 1.2, 0.68, 0.7, ddx, 0.36, ddz, darkWoodMat);
         box(group, 0.55, 0.5, 0.55, ddx, 0.25, ddz + 0.85, mat("#3a4554", { rough: 0.7 }), true); // chair
+        if ((r + cIdx) % 3 !== 0) schoolPerson(group, ddx, ddz + .85, Math.PI, ["#d39a52", "#7684ba", "#bd717e"][cIdx], ["#e8ba91", "#a8704d", "#cc956e"][cIdx], true);
         obstacles.push({ minX: ddx - 0.75, maxX: ddx + 0.75, minZ: ddz - 0.5, maxZ: ddz + 1.2 });
+        studentDesks.push({ x: ddx, z: ddz });
       }
     }
     // teacher desk near board
-    const tdx = s > 0 ? rx1 - 1.6 : rx0 + 1.6;
-    box(group, 1.8, 0.12, 0.9, tdx, 0.76, zc + 0.4, woodMat, true);
-    box(group, 1.6, 0.7, 0.8, tdx, 0.37, zc + 0.4, darkWoodMat);
-    obstacles.push({ minX: Math.min(tdx - 1, tdx + 1), maxX: Math.max(tdx - 1, tdx + 1), minZ: zc - 0.2, maxZ: zc + 1.0 });
+    const tdx = rcx;
+    box(group, 1.8, 0.12, 0.9, tdx, 0.76, rz0 + 1.2, woodMat, true);
+    box(group, 1.6, 0.7, 0.8, tdx, 0.37, rz0 + 1.2, darkWoodMat);
+    obstacles.push({ minX: Math.min(tdx - 1, tdx + 1), maxX: Math.max(tdx - 1, tdx + 1), minZ: rz0 + 0.6, maxZ: rz0 + 1.8 });
+    schoolPerson(group, rcx + 1.8, rz0 + 1.1, 0, "#526e85", "#c38d67", false, true);
+    obstacles.push({ minX: rcx + 1.35, maxX: rcx + 2.25, minZ: rz0 + .65, maxZ: rz0 + 1.55 });
     // shelf obstacle
-    obstacles.push({ minX: shx - 2.4, maxX: shx + 2.4, minZ: rz0, maxZ: rz0 + 0.9 });
+    obstacles.push({ minX: shx - 2.4, maxX: shx + 2.4, minZ: rz1 - 0.9, maxZ: rz1 });
 
     // posters: topics on side wall
     const posters = stats?.topics.slice(0, 3) ?? [];
@@ -338,11 +377,11 @@ export function buildWorld(data: SchoolData): WorldBuild {
     // exit door on corridor-side wall
     const ex = s * 3.32;
     box(group, 0.18, 2.5, 1.7, ex, 1.25, zc + 3.4, darkWoodMat);
-    box(group, 0.1, 2.3, 1.4, ex - s * 0.04, 1.15, zc + 3.4, mat("#3a4554", { rough: 0.6 }));
+    box(group, 0.1, 2.3, 1.4, ex + s * 0.16, 1.15, zc + 3.4, mat("#3a4554", { rough: 0.6 }));
     plane(
-      group, 1.6, 0.5, ex - s * 0.12, 2.78, zc + 3.4,
+      group, 1.6, 0.5, ex + s * 0.22, 2.78, zc + 3.4,
       new THREE.MeshBasicMaterial({ map: signTexture("HALLWAY →") }),
-      s > 0 ? -Math.PI / 2 : Math.PI / 2,
+      s > 0 ? Math.PI / 2 : -Math.PI / 2,
     );
 
     const areaId = `room:${course.id}`;
@@ -358,10 +397,21 @@ export function buildWorld(data: SchoolData): WorldBuild {
         maxZ: rz1 - pad,
       },
       obstacles,
-      spawn: { x: s * 5.0, z: zc + 2.2, yaw: s > 0 ? Math.PI / 2 : -Math.PI / 2 },
+      spawn: { x: s * 5.0, z: zc + 3.2, yaw: Math.PI },
     };
     interactables.push({ kind: "exit", areaId, x: s * 4.3, z: zc + 3.4, radius: 1.6 });
-    interactables.push({ kind: "desk", areaId, x: rcx, z: zc + 0.6, radius: 2.6, course });
+    interactables.push({ kind: "desk", areaId, x: shx, z: shz - 1, radius: 1.8, course, station: "notebooks" });
+    // Professor chat — stand in front of the teacher to open the course chat.
+    interactables.push({ kind: "professor", areaId, x: rcx + 1.8, z: rz0 + 2.1, radius: 1.7, course });
+    // Practice at any student desk — stand beside a desk, not the teacher's.
+    for (const d of studentDesks) {
+      interactables.push({ kind: "desk", areaId, x: d.x, z: d.z, radius: 1.45, course, station: "practice" });
+    }
+    // Side-wall media station, with a clear walking aisle around the desks.
+    const mediaX = s > 0 ? rx1 - 0.25 : rx0 + 0.25;
+    plane(group, 3.1, 1.94, mediaX, 1.9, zc + 2.6, new THREE.MeshBasicMaterial({ map: videoWallTexture() }), s > 0 ? -Math.PI / 2 : Math.PI / 2);
+    interactables.push({ kind: "desk", areaId, x: mediaX - s * 0.9, z: zc + 2.6, radius: 1.8, course, station: "videos" });
+    plane(group, 3, 0.45, shx, 2.55, shz - 0.3, new THREE.MeshBasicMaterial({ map: signTexture("NOTEBOOK LIBRARY") }), Math.PI);
   });
 
   return { group, areas, interactables, corridorEndZ: zEnd };

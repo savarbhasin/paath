@@ -9,6 +9,14 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 class VideoJobError extends Error {}
 
+function formatWorkerError(error: unknown): string {
+  if (!(error instanceof Error)) return 'Worker error';
+  const cause = (error as Error & { cause?: unknown }).cause;
+  if (cause instanceof Error) return `${error.message} (${cause.name}: ${cause.message})`;
+  if (typeof cause === 'string' && cause) return `${error.message} (${cause})`;
+  return error.message;
+}
+
 const BUCKET = 'course-videos';
 const IMAGE = process.env.VIDEO_RENDER_IMAGE || 'paath-video-renderer:0.8.34';
 const ROOT = resolve(process.env.VIDEO_WORK_DIR || '.video-work');
@@ -383,7 +391,7 @@ while (!stopping) {
     else await delay(3000);
     if (process.argv.includes('--once')) break;
   } catch (error) {
-    console.error(error instanceof Error ? error.message : 'Worker error');
+    console.error(formatWorkerError(error));
     if (process.argv.includes('--once')) { process.exitCode = 1; break; }
     if (!stopping) await delay(5000);
   }

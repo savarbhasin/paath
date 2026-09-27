@@ -17,7 +17,7 @@ export function explanationToTiptapNodes(payload: ExplanationPayload): JSONConte
     nodes.push({ type: "paragraph", content: inlineNodes(summary) });
   }
   for (const section of payload.sections) {
-    const heading = section.heading.trim().slice(0, 120);
+    const heading = section.heading.trim();
     if (heading) {
       nodes.push({
         type: "heading",
@@ -120,8 +120,11 @@ function blockNodes(markdown: string): JSONContent[] {
         index += 1;
       }
       index += 1; // Skip the closing fence (or run past the end).
-      const body = code.join("\n").slice(0, 4000);
-      nodes.push({ type: "codeBlock", content: [{ type: "text", text: body || " " }] });
+      const body = code.join("\n") || " ";
+      // Long code is split across blocks so nothing is dropped.
+      for (let start = 0; start < body.length; start += 4000) {
+        nodes.push({ type: "codeBlock", content: [{ type: "text", text: body.slice(start, start + 4000) }] });
+      }
       continue;
     }
 
@@ -130,7 +133,7 @@ function blockNodes(markdown: string): JSONContent[] {
     if (headingMatch) {
       flushParagraph();
       const level = Math.min(2 + headingMatch[1].length, 4);
-      const text = headingMatch[2].trim().slice(0, 200);
+      const text = headingMatch[2].trim();
       if (text) {
         nodes.push({ type: "heading", attrs: { level }, content: inlineNodes(text) });
       }
@@ -153,7 +156,7 @@ function blockNodes(markdown: string): JSONContent[] {
         quoted.push(lines[index].trim().replace(/^>\s?/, ""));
         index += 1;
       }
-      const text = quoted.join("\n").trim().slice(0, 2000);
+      const text = quoted.join("\n").trim();
       if (text) {
         nodes.push({ type: "blockquote", content: [{ type: "paragraph", content: inlineNodes(text) }] });
       }
@@ -169,7 +172,7 @@ function blockNodes(markdown: string): JSONContent[] {
       while (index < lines.length) {
         const itemMatch = /^(\s*)(?:[-*+]|\d+[.)])\s+(.*)$/.exec(lines[index]);
         if (!itemMatch) break;
-        const itemText = itemMatch[2].trim().slice(0, 1000);
+        const itemText = itemMatch[2].trim();
         if (itemText) {
           items.push({ type: "listItem", content: [{ type: "paragraph", content: inlineNodes(itemText) }] });
         }
@@ -203,7 +206,9 @@ type InlineMark = { type: "bold" } | { type: "italic" } | { type: "code" } | { t
 function inlineNodes(text: string): JSONContent[] {
   const content: JSONContent[] = [];
   // Split out code spans first so their contents are never reinterpreted.
-  const codeParts = text.slice(0, 4000).split(/(`[^`\n]*`)/g);
+  // Long text is processed whole — paragraph splitting upstream already
+  // keeps nodes at reasonable sizes, so nothing is truncated here.
+  const codeParts = text.split(/(`[^`\n]*`)/g);
   for (const part of codeParts) {
     if (!part) continue;
     if (/^`[^`\n]*`$/.test(part)) {
@@ -229,7 +234,7 @@ function richInlineNodes(text: string, marks: InlineMark[]): JSONContent[] {
     if (match.index > cursor) {
       pushStyled(text.slice(cursor, match.index), marks);
     }
-    const label = match[1].slice(0, 300);
+    const label = match[1];
     const href = match[2].slice(0, 500);
     if (label) {
       pushStyled(label, [...marks, { type: "link", attrs: { href } }]);
@@ -270,7 +275,7 @@ function italicInlineNodes(text: string, marks: InlineMark[]): JSONContent[] {
     if (match.index > cursor) {
       content.push({ type: "text", text: text.slice(cursor, match.index), ...(marks.length > 0 ? { marks } : {}) });
     }
-    const inner = (match[1] ?? match[2] ?? "").slice(0, 1000);
+    const inner = match[1] ?? match[2] ?? "";
     if (inner) {
       content.push({ type: "text", text: inner, marks: [...marks, { type: "italic" }] });
     }

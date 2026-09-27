@@ -27,7 +27,10 @@ export type SchoolData = {
   offline: boolean;
 };
 
+export type Station = "notebooks" | "practice" | "videos";
+
 export type ClassroomPanel = {
+  station?: Station;
   course: CourseInfo;
   stats: CourseStats | null;
 };
